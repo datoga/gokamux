@@ -4,18 +4,22 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/Shopify/sarama"
 	"github.com/spf13/cobra"
 
 	"github.com/spf13/viper"
 
-	"github.com/datoga/gokamux/cmd/gokamux/cmd/config"
+	"github.com/datoga/saramaconfig"
 )
 
 var cfgFile string
 var Verbose bool
 var Version = "1.0.0" //TODO: Get from arg in build
 
-var Cfg config.Config
+type Config struct {
+	Brokers []string
+	Sarama  sarama.Config
+}
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -28,21 +32,36 @@ var rootCmd = &cobra.Command{
 	- Output (writes the result in a different output topics).
 You can define declaratively the Kafka config and your setup, or provide your own filters and transformers via the API.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		brokers := viper.GetStringSlice("brokers")
+		cfg, err := loadConfig()
 
-		if len(brokers) == 0 {
-			fmt.Fprintln(os.Stderr, "At least one broker must be configured")
+		if err != nil {
+			fmt.Fprintln(os.Stderr, "Failed loading the config with error", err)
 			return
 		}
 
-		Cfg = config.Config{
-			Brokers: brokers,
-		}
-
 		if Verbose {
-			fmt.Printf("Config: %+v\n", Cfg)
+			fmt.Printf("Config: %+v\n", *cfg)
 		}
 	},
+}
+
+func loadConfig() (*Config, error) {
+	brokers := viper.GetStringSlice("brokers")
+
+	if len(brokers) == 0 {
+		brokers = []string{"localhost:9092"}
+	}
+
+	saramaCfg, err := saramaconfig.NewFromViper(viper.GetViper())
+
+	if err != nil {
+		return nil, fmt.Errorf("failed configuring Sarama with error %v", err)
+	}
+
+	return &Config{
+		Brokers: brokers,
+		Sarama:  *saramaCfg,
+	}, nil
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
