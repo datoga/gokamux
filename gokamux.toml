@@ -1,0 +1,18 @@
+[stream]
+input = ['in1','in2']
+output = ['out1', 'out2']
+operations = ["filter-values", "show-values", "transformer-values"]
+
+[filter-values]
+module = 'jq'
+params = 'true'
+type = 'filter'
+
+[show-values]
+module = 'log'
+type = 'leaf'
+
+[transformer-values]
+module = 'jq'
+params = '.'
+type = 'transformer'

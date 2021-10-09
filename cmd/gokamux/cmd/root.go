@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
@@ -8,18 +9,15 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/spf13/viper"
-
-	"github.com/datoga/saramaconfig"
 )
 
 var cfgFile string
+var saramaCfgFile string
 var Verbose bool
 var Version = "1.0.0" //TODO: Get from arg in build
 
-type Config struct {
-	Brokers []string
-	Sarama  sarama.Config
-}
+var Cfg *Config
+var SaramaCfg *sarama.Config
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -32,36 +30,8 @@ var rootCmd = &cobra.Command{
 	- Output (writes the result in a different output topics).
 You can define declaratively the Kafka config and your setup, or provide your own filters and transformers via the API.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		cfg, err := loadConfig()
 
-		if err != nil {
-			fmt.Fprintln(os.Stderr, "Failed loading the config with error", err)
-			return
-		}
-
-		if Verbose {
-			fmt.Printf("Config: %+v\n", *cfg)
-		}
 	},
-}
-
-func loadConfig() (*Config, error) {
-	brokers := viper.GetStringSlice("brokers")
-
-	if len(brokers) == 0 {
-		brokers = []string{"localhost:9092"}
-	}
-
-	saramaCfg, err := saramaconfig.NewFromViper(viper.GetViper())
-
-	if err != nil {
-		return nil, fmt.Errorf("failed configuring Sarama with error %v", err)
-	}
-
-	return &Config{
-		Brokers: brokers,
-		Sarama:  *saramaCfg,
-	}, nil
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -71,40 +41,79 @@ func Execute() {
 }
 
 func init() {
-	cobra.OnInitialize(initConfig)
+	cobra.OnInitialize(initConfigGokaMux, initSaramaConfig)
 
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "c", "config file (default is $HOME/.gokamux.yaml)")
+	rootCmd.PersistentFlags().StringVarP(&cfgFile, "config", "c", "", "gokamux config file (default is $HOME/.gokamux.toml)")
+
+	rootCmd.PersistentFlags().StringVarP(&saramaCfgFile, "sarama-config", "s", "", "sarama config file (default is $HOME/.sarama.toml) (optional)")
 
 	rootCmd.PersistentFlags().BoolVarP(&Verbose, "verbose", "v", false, "verbose output")
 }
 
-// initConfig reads in config file and ENV variables if set.
-func initConfig() {
+// initConfigGokaMux reads in a GokaMux config file and ENV variables if set.
+func initConfigGokaMux() {
+	v, found := initConfig(cfgFile, "gokamux")
+
+	if !found {
+		cobra.CheckErr(errors.New("failed loading the gokamux config"))
+	}
+
+	cfg, err := loadGokaMuxConfig(v)
+
+	cobra.CheckErr(err)
+
+	if Verbose {
+		fmt.Printf("GokaMux Config: %+v\n", *cfg)
+	}
+}
+
+// initSaramaConfig reads in Sarama config file and ENV variables if set.
+func initSaramaConfig() {
+	v, found := initConfig(saramaCfgFile, "sarama")
+
+	if !found {
+		fmt.Println("No Sarama config file found, default config will be used")
+		return
+	}
+
+	saramaCfg, err := loadSaramaConfig(v)
+
+	cobra.CheckErr(err)
+
+	if Verbose {
+		fmt.Printf("Sarama Config: %+v\n", *saramaCfg)
+	}
+}
+
+// initConfig reads in a config file and ENV variables if set.
+func initConfig(cfgFile string, cfgName string) (*viper.Viper, bool) {
+	v := viper.New()
+
 	if cfgFile != "" {
 		// Use config file from the flag.
-		viper.SetConfigFile(cfgFile)
+		v.SetConfigFile(cfgFile)
 	} else {
 		// Find home directory.
 		home, err := os.UserHomeDir()
 		cobra.CheckErr(err)
 
-		// Search config in home directory with name ".gokamux" (without extension).
-		viper.AddConfigPath(home)
-		viper.AddConfigPath(".")
-		viper.AddConfigPath("/etc/gokamux/")
-		viper.SetConfigType("toml")
-		viper.SetConfigName("gokamux")
-	}
+		// Search config in home directory with name ".$CONFIGNAME" (without extension).
+		v.AddConfigPath(home)
+		v.AddConfigPath(".")
+		v.AddConfigPath("/etc/gokamux/")
+		v.SetConfigType("toml")
+		v.SetConfigName(cfgName)
 
-	viper.SetEnvPrefix("gokamux")
-	viper.AutomaticEnv() // read in environment variables that match
+		v.SetEnvPrefix(cfgName)
+		v.AutomaticEnv() // read in environment variables that match
+	}
 
 	// If a config file is found, read it in.
-	if err := viper.ReadInConfig(); err == nil {
-		fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
+	if err := v.ReadInConfig(); err == nil {
+		if Verbose {
+			fmt.Printf("Using config file for %s: %s\n", cfgName, v.ConfigFileUsed())
+		}
 	}
 
-	if Verbose {
-		fmt.Printf("Config file selected: %s\n", viper.ConfigFileUsed())
-	}
+	return v, v.ReadInConfig() == nil
 }
