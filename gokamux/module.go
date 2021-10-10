@@ -1,11 +1,8 @@
 package gokamux
 
-type ModuleResultNotifier interface {
-	Discard()
-	OverrideMessage(message string)
-}
+import "github.com/lovoo/goka"
 
-type ModuleFn func(notifier ModuleResultNotifier, message string, params []string)
+type ModuleFn func(ctx Context, msg interface{}, params []string)
 
 type Module struct {
 	Name string
@@ -24,39 +21,18 @@ func New(name string, fn ModuleFn) *Module {
 	}
 }
 
-func (m Module) Execute(message *string, params []string) FilterResult {
-	mCtx := moduleCtx{}
+func (m Module) Execute(ctx goka.Context, message *interface{}, params []string) FilterResult {
+	cbCtx := cbContext{GokaCtx: ctx}
 
-	m.fn(&mCtx, *message, params)
+	m.fn(&cbCtx, *message, params)
 
-	if mCtx.IsDiscarded() {
+	if cbCtx.Discarded {
 		return Discard
 	}
 
-	if overrides, overrideMessage := mCtx.OverridesMessage(); overrides {
-		message = &overrideMessage
+	if cbCtx.OverridedMessage != nil {
+		message = &cbCtx.OverridedMessage
 	}
 
 	return Allow
-}
-
-type moduleCtx struct {
-	discard         bool
-	overrideMessage string
-}
-
-func (mCtx *moduleCtx) Discard() {
-	mCtx.discard = true
-}
-
-func (mCtx *moduleCtx) OverrideMessage(message string) {
-	mCtx.overrideMessage = message
-}
-
-func (mCtx moduleCtx) IsDiscarded() bool {
-	return mCtx.discard
-}
-
-func (mCtx moduleCtx) OverridesMessage() (bool, string) {
-	return mCtx.overrideMessage != "", mCtx.overrideMessage
 }
