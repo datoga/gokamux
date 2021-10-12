@@ -4,7 +4,7 @@ import "github.com/lovoo/goka"
 
 type Context interface {
 	Discard()
-	OverrideMessage(interface{})
+	OverrideMessage(msg string)
 	Err(error)
 	GokaContext() goka.Context
 }
@@ -12,7 +12,7 @@ type Context interface {
 type cbContext struct {
 	GokaCtx          goka.Context
 	Discarded        bool
-	OverridedMessage interface{}
+	OverridedMessage string
 	Error            error
 }
 
@@ -20,8 +20,8 @@ func (ct *cbContext) Discard() {
 	ct.Discarded = true
 }
 
-func (ct *cbContext) OverrideMessage(message interface{}) {
-	ct.OverridedMessage = message
+func (ct *cbContext) OverrideMessage(msg string) {
+	ct.OverridedMessage = msg
 }
 
 func (ct *cbContext) Err(err error) {

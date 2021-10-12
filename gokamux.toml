@@ -7,6 +7,10 @@ operations = ["filter-values", "show-values", "transformer-values"]
 module = 'jq-filter'
 params = 'true'
 
+[filter-false-values]
+module = 'jq-filter'
+params = 'false'
+
 [show-values]
 module = 'log'
 

@@ -6,34 +6,44 @@ import (
 )
 
 var (
-	modulesMtx sync.RWMutex
-	modules    = make(map[string]Module)
+	moduleLoaderMtx sync.RWMutex
+	moduleLoaders   = make(map[string]ModuleLoader)
 )
 
-func Register(name string, module Module) {
-	if module == nil {
-		panic(fmt.Errorf("nil module %s provided", name))
+func Register(name string, moduleLoader ModuleLoader) {
+	if moduleLoader == nil {
+		panic(fmt.Errorf("nil module loader %s provided", name))
 	}
 
-	modulesMtx.Lock()
-	defer modulesMtx.Unlock()
+	moduleLoaderMtx.Lock()
+	defer moduleLoaderMtx.Unlock()
 
-	if _, dup := modules[name]; dup {
-		panic(fmt.Errorf("module %s registered previously", name))
+	if _, dup := moduleLoaders[name]; dup {
+		panic(fmt.Errorf("module loader %s registered previously", name))
 	}
 
-	modules[name] = module
+	moduleLoaders[name] = moduleLoader
 }
 
-func findModule(name string) (Module, error) {
-	modulesMtx.RLock()
-	defer modulesMtx.RUnlock()
-	
-	m, found := modules[name]
+func findModuleLoader(name string) (ModuleLoader, error) {
+	moduleLoaderMtx.RLock()
+	defer moduleLoaderMtx.RUnlock()
+
+	m, found := moduleLoaders[name]
 
 	if !found {
 		return nil, fmt.Errorf("module %s not found", name)
 	}
 
 	return m, nil
+}
+
+func mustModule(name string) Module {
+	m, err := findModule(name)
+
+	if err != nil {
+		panic(err)
+	}
+
+	return m
 }

@@ -6,30 +6,52 @@ import (
 	"github.com/lovoo/goka"
 )
 
+type compiledStep struct {
+	ID             string
+	ModuleName     string
+	ModuleInstance Module
+}
+
 type pipeline struct {
-	modules []namedModule
-	Verbose bool
+	steps         []Step
+	compiledSteps []compiledStep
+	Verbose       bool
 }
 
-type namedModule struct {
-	name   string
-	module Module
+func newPipeline(steps ...Step) *pipeline {
+	return &pipeline{
+		steps: steps,
+	}
 }
 
-func newPipeline(modules ...string) (*pipeline, error) {
-	p := pipeline{}
+type pipelineRunner struct {
+	compiledSteps []compiledStep
+}
 
-	for _, module := range modules {
-		m, err := findModule(module)
+func (p *pipeline) Compile() (*pipelineRunner, error) {
+	var pSteps []compiledStep
+
+	for _, step := range p.steps {
+		moduleLoader, err := findModuleLoader(step.ModuleName)
 
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed looking for module %s in registry with error %v", step.ModuleName, err)
 		}
 
-		p.modules = append(p.modules, namedModule{name: module, module: m})
+		module := moduleLoader.Init(step.Params...)
+
+		pStep := compiledStep{
+			ID:             step.ID,
+			ModuleName:     step.ModuleName,
+			ModuleInstance: module,
+		}
+
+		pSteps = append(pSteps, pStep)
 	}
 
-	return &p, nil
+	return &pipelineRunner{
+		compiledSteps: pSteps,
+	}, nil
 }
 
 type pipelineResult struct {
@@ -38,17 +60,17 @@ type pipelineResult struct {
 	Error    error
 }
 
-func (p pipeline) Run(ctx goka.Context, message interface{}, params []string) pipelineResult {
+func (p pipelineRunner) Run(ctx goka.Context, message *string) pipelineResult {
 	r := pipelineResult{}
 
-	for i, m := range p.modules {
+	for i, m := range p.compiledSteps {
 		cbCtx := cbContext{GokaCtx: ctx}
 
-		fmt.Printf("Executing module %d [%s]\n", i, m.name)
+		fmt.Printf("Executing step %d [%s] with module %s\n", i, m.ID, m.ModuleName)
 
-		m.module.Execute(&cbCtx, message, params)
+		m.ModuleInstance.Execute(&cbCtx, *message)
 
-		fmt.Printf("Module %d [%s]\n executed", i, m.name)
+		fmt.Printf("Step %d [%s]\n executed", i, m.ID)
 
 		if cbCtx.Error != nil {
 			return pipelineResult{Error: cbCtx.Error}
@@ -58,8 +80,8 @@ func (p pipeline) Run(ctx goka.Context, message interface{}, params []string) pi
 			return pipelineResult{Discard: true}
 		}
 
-		if cbCtx.OverridedMessage != nil {
-			message = cbCtx.OverridedMessage
+		if cbCtx.OverridedMessage != "" {
+			message = &cbCtx.OverridedMessage
 			r.Override = true
 		}
 	}

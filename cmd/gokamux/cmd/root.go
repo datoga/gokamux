@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/Shopify/sarama"
+	"github.com/datoga/gokamux/gokamux"
 	"github.com/spf13/cobra"
 
 	"github.com/spf13/viper"
@@ -30,7 +31,13 @@ var rootCmd = &cobra.Command{
 	- Output (writes the result in a different output topics).
 You can define declaratively the Kafka config and your setup, or provide your own filters and transformers via the API.`,
 	Run: func(cmd *cobra.Command, args []string) {
+		var steps []gokamux.Step
 
+		gokamux.NewMuxer().
+			Brokers(Cfg.Brokers...).
+			Input(Cfg.InputTopics...).
+			Output(Cfg.OutputTopics...).
+			Step(steps...)
 	},
 }
 

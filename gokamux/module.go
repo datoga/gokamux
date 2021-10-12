@@ -1,5 +1,9 @@
 package gokamux
 
+type ModuleLoader interface {
+	Init(params ...string) Module
+}
+
 type Module interface {
-	Execute(ctx Context, message interface{}, params []string)
+	Execute(ctx Context, msg string)
 }
