@@ -3,13 +3,14 @@ package gokamux
 import (
 	"fmt"
 
+	"github.com/datoga/gokamux/modules"
 	"github.com/lovoo/goka"
 )
 
 type compiledStep struct {
 	ID             string
 	ModuleName     string
-	ModuleInstance Module
+	ModuleInstance modules.Module
 }
 
 type pipeline struct {
@@ -32,7 +33,7 @@ func (p *pipeline) Compile() (*pipelineRunner, error) {
 	var pSteps []compiledStep
 
 	for _, step := range p.steps {
-		module, err := instanceModule(step.ModuleName, step.Params...)
+		module, err := modules.InstanceModule(step.ModuleName, step.Params...)
 
 		if err != nil {
 			return nil, fmt.Errorf("failed looking for module %s in registry with error %v", step.ModuleName, err)
@@ -66,7 +67,7 @@ func (p pipelineRunner) Run(ctx goka.Context, message *string) pipelineResult {
 
 		fmt.Printf("Executing step %d [%s] with module %s\n", i, m.ID, m.ModuleName)
 
-		m.ModuleInstance.Execute(&cbCtx, *message)
+		m.ModuleInstance.Process(&cbCtx, *message)
 
 		fmt.Printf("Step %d [%s]\n executed", i, m.ID)
 

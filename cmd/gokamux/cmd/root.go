@@ -6,7 +6,7 @@ import (
 	"os"
 
 	"github.com/Shopify/sarama"
-	"github.com/datoga/gokamux/gokamux"
+	"github.com/datoga/gokamux"
 	"github.com/spf13/cobra"
 
 	"github.com/spf13/viper"

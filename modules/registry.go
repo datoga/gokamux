@@ -1,4 +1,4 @@
-package gokamux
+package modules
 
 import (
 	"fmt"
@@ -6,9 +6,9 @@ import (
 )
 
 var (
-	moduleMtx     sync.RWMutex
-	moduleLoaders = make(map[string]ModuleLoader)
-	modules       = make(map[string]Module)
+	moduleMtx         sync.RWMutex
+	modulesLoader     = make(map[string]ModuleLoader)
+	modulesStandalone = make(map[string]Module)
 )
 
 func RegisterLoader(name string, moduleLoader ModuleLoader) {
@@ -21,7 +21,7 @@ func RegisterLoader(name string, moduleLoader ModuleLoader) {
 
 	checkDupOrPanic(name)
 
-	moduleLoaders[name] = moduleLoader
+	modulesLoader[name] = moduleLoader
 }
 
 func RegisterModule(name string, module Module) {
@@ -34,44 +34,38 @@ func RegisterModule(name string, module Module) {
 
 	checkDupOrPanic(name)
 
-	modules[name] = module
+	modulesStandalone[name] = module
 }
 
 func checkDupOrPanic(name string) {
-	if _, dup := modules[name]; dup {
+	if _, dup := modulesStandalone[name]; dup {
 		panic(fmt.Errorf("module %s registered previously as module", name))
 	}
 
-	if _, dup := moduleLoaders[name]; dup {
+	if _, dup := modulesLoader[name]; dup {
 		panic(fmt.Errorf("module loader %s registered previously as module loader", name))
 	}
 }
 
-func instanceModule(name string, params ...string) (Module, error) {
+func InstanceModule(name string, params ...string) (Module, error) {
 	moduleMtx.RLock()
 	defer moduleMtx.RUnlock()
 
-	loader, found := moduleLoaders[name]
+	loader, found := modulesLoader[name]
 
 	if found {
-		return loader.Init(params...), nil
+		return loader.Init(params...)
 	}
 
-	module, found := modules[name]
+	module, found := modulesStandalone[name]
 
 	if !found {
 		return nil, fmt.Errorf("module %s not found", name)
 	}
 
-	return module, nil
-}
-
-func mustInstanceModule(name string, params ...string) Module {
-	m, err := instanceModule(name, params...)
-
-	if err != nil {
-		panic(err)
+	if len(params) > 0 {
+		fmt.Println("no found loader with params, it will instance a standalone module but params will be ignored")
 	}
 
-	return m
+	return module, nil
 }
