@@ -32,13 +32,11 @@ func (p *pipeline) Compile() (*pipelineRunner, error) {
 	var pSteps []compiledStep
 
 	for _, step := range p.steps {
-		moduleLoader, err := findModuleLoader(step.ModuleName)
+		module, err := instanceModule(step.ModuleName, step.Params...)
 
 		if err != nil {
 			return nil, fmt.Errorf("failed looking for module %s in registry with error %v", step.ModuleName, err)
 		}
-
-		module := moduleLoader.Init(step.Params...)
 
 		pStep := compiledStep{
 			ID:             step.ID,
