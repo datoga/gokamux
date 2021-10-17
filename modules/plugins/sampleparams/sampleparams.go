@@ -6,24 +6,20 @@ import (
 	"github.com/datoga/gokamux/modules"
 )
 
-func Init(params ...string) (modules.Module, error) {
+var message string
+
+func Configure(params ...string) error {
 	if len(params) == 0 {
-		return nil, fmt.Errorf("no params provided")
+		return fmt.Errorf("no params provided")
 	}
 
-	return New(params[0]), nil
+	message = params[0]
+
+	return nil
 }
 
-type Processor struct {
-	message string
-}
+func Process(ctx modules.Context, msg string) {
+	fmt.Println("Processor changer with message", message)
 
-func New(message string) *Processor {
-	return &Processor{message: message}
-}
-
-func (p Processor) Process(ctx modules.Context, msg string) {
-	fmt.Println("Processor changer with message", p.message)
-
-	ctx.OverrideMessage(p.message)
+	ctx.OverrideMessage(message)
 }

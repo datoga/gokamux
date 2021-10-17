@@ -33,15 +33,15 @@ func (p *pipeline) Compile() (*pipelineRunner, error) {
 	var pSteps []compiledStep
 
 	for _, step := range p.steps {
-		module, err := modules.InstanceModule(step.ModuleName, step.Params...)
+		module, err := modules.Instance(step.Module, step.Params...)
 
 		if err != nil {
-			return nil, fmt.Errorf("failed looking for module %s in registry with error %v", step.ModuleName, err)
+			return nil, fmt.Errorf("failed looking for module %s in registry with error %v", step.Module, err)
 		}
 
 		pStep := compiledStep{
 			ID:             step.ID,
-			ModuleName:     step.ModuleName,
+			ModuleName:     step.Module,
 			ModuleInstance: module,
 		}
 

@@ -7,6 +7,7 @@ import (
 
 	"github.com/Shopify/sarama"
 	"github.com/datoga/gokamux"
+	"github.com/datoga/gokamux/modules"
 	"github.com/spf13/cobra"
 
 	"github.com/spf13/viper"
@@ -14,6 +15,8 @@ import (
 
 var cfgFile string
 var saramaCfgFile string
+
+var PluginsPath string
 var Verbose bool
 var Version = "1.0.0" //TODO: Get from arg in build
 
@@ -48,13 +51,29 @@ func Execute() {
 }
 
 func init() {
-	cobra.OnInitialize(initConfigGokaMux, initSaramaConfig)
+	cobra.OnInitialize(initConfigGokaMux, initSaramaConfig, discoverPlugins)
 
 	rootCmd.PersistentFlags().StringVarP(&cfgFile, "config", "c", "", "gokamux config file (default is $HOME/.gokamux.toml)")
 
 	rootCmd.PersistentFlags().StringVarP(&saramaCfgFile, "sarama-config", "s", "", "sarama config file (default is $HOME/.sarama.toml) (optional)")
 
+	rootCmd.PersistentFlags().StringVarP(&PluginsPath, "plugins", "p", "plugins", "plugins directory (optional)")
+
 	rootCmd.PersistentFlags().BoolVarP(&Verbose, "verbose", "v", false, "verbose output")
+}
+
+func discoverPlugins() {
+	if _, err := os.Stat(PluginsPath); !os.IsNotExist(err) {
+		modules.MustDiscoverAndRegister(PluginsPath)
+	}
+
+	if Verbose {
+		fmt.Println(len(modules.List()), "modules loaded")
+
+		for _, m := range modules.List() {
+			fmt.Println("Module", m.Name)
+		}
+	}
 }
 
 // initConfigGokaMux reads in a GokaMux config file and ENV variables if set.
@@ -72,6 +91,8 @@ func initConfigGokaMux() {
 	if Verbose {
 		fmt.Printf("GokaMux Config: %+v\n", *cfg)
 	}
+
+	Cfg = cfg
 }
 
 // initSaramaConfig reads in Sarama config file and ENV variables if set.
@@ -90,6 +111,8 @@ func initSaramaConfig() {
 	if Verbose {
 		fmt.Printf("Sarama Config: %+v\n", *saramaCfg)
 	}
+
+	SaramaCfg = saramaCfg
 }
 
 // initConfig reads in a config file and ENV variables if set.

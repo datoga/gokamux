@@ -9,9 +9,9 @@ import (
 )
 
 type Step struct {
-	ID         string
-	ModuleName string
-	Params     []string
+	ID     string
+	Module string
+	Params []string
 }
 
 type Muxer struct {
