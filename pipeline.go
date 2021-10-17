@@ -4,13 +4,14 @@ import (
 	"fmt"
 
 	"github.com/datoga/gokamux/modules"
+	"github.com/datoga/gokamux/modules/model"
 	"github.com/lovoo/goka"
 )
 
 type compiledStep struct {
 	ID             string
 	ModuleName     string
-	ModuleInstance modules.Module
+	ModuleInstance model.Module
 }
 
 type pipeline struct {

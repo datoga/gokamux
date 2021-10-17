@@ -3,10 +3,20 @@ package main
 import (
 	"fmt"
 
-	"github.com/datoga/gokamux/modules"
+	"github.com/datoga/gokamux/modules/model"
 )
 
-func Process(ctx modules.Context, msg string) {
+func Load() model.Module {
+	return sample{}
+}
+
+type sample struct{}
+
+func (sample) Init(params ...string) error {
+	return nil
+}
+
+func (sample) Process(ctx model.Context, msg string) {
 	gokaCtx := ctx.GokaContext()
 
 	fmt.Printf(

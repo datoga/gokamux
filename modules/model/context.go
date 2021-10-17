@@ -1,4 +1,4 @@
-package modules
+package model
 
 import "github.com/lovoo/goka"
 

@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"plugin"
 	"strings"
+
+	"github.com/datoga/gokamux/modules/model"
 )
 
 func Discover(path string) ([]ModuleDefinition, error) {
@@ -42,7 +44,7 @@ func discoverModule(name string) (*ModuleDefinition, error) {
 		return nil, fmt.Errorf("failed opening plugin %s with error %v", name, err)
 	}
 
-	processPlugin, err := plug.Lookup("Process")
+	processPlugin, err := plug.Lookup("Load")
 
 	if err != nil {
 		return nil, fmt.Errorf("failed looking symbols on plugin %s with error %v", name, err)
@@ -50,13 +52,11 @@ func discoverModule(name string) (*ModuleDefinition, error) {
 
 	log.Printf("%T, %+v", processPlugin, processPlugin)
 
-	fn, ok := processPlugin.(fnProcess)
+	fnLoad, ok := processPlugin.(func() model.Module)
 
 	if !ok {
 		return nil, fmt.Errorf("failed taking function process for plugin %s", name)
 	}
-
-	hp := helperProcess{fnProcess: fn}
 
 	pluginName := name
 
@@ -64,22 +64,9 @@ func discoverModule(name string) (*ModuleDefinition, error) {
 		pluginName = name[:idx]
 	}
 
-	var configurer Configurer
-
-	if configurePlugin, err := plug.Lookup("Configure"); err != nil {
-		fn, ok := configurePlugin.(fnConfigure)
-
-		if !ok {
-			return nil, fmt.Errorf("failed taking configure for plugin %s", name)
-		}
-
-		configurer = helperConfigure{fnConfigure: fn}
-	}
-
 	return &ModuleDefinition{
-		Name:       pluginName,
-		Module:     hp,
-		Configurer: configurer,
+		Name:   pluginName,
+		Module: fnLoad(),
 	}, nil
 }
 

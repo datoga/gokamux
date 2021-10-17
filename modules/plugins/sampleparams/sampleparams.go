@@ -3,23 +3,29 @@ package main
 import (
 	"fmt"
 
-	"github.com/datoga/gokamux/modules"
+	"github.com/datoga/gokamux/modules/model"
 )
 
-var message string
+func Load() model.Module {
+	return &sampleParams{}
+}
 
-func Configure(params ...string) error {
+type sampleParams struct {
+	message string
+}
+
+func (s *sampleParams) Init(params ...string) error {
 	if len(params) == 0 {
 		return fmt.Errorf("no params provided")
 	}
 
-	message = params[0]
+	s.message = params[0]
 
 	return nil
 }
 
-func Process(ctx modules.Context, msg string) {
-	fmt.Println("Processor changer with message", message)
+func (s sampleParams) Process(ctx model.Context, msg string) {
+	fmt.Println("Processor changer with message", s.message)
 
-	ctx.OverrideMessage(message)
+	ctx.OverrideMessage(s.message)
 }
