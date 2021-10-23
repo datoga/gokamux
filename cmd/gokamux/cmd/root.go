@@ -1,8 +1,10 @@
 package cmd
 
 import (
+	"context"
 	"errors"
 	"fmt"
+	"log"
 	"os"
 
 	"github.com/Shopify/sarama"
@@ -38,11 +40,15 @@ You can define declaratively the Kafka config and your setup, or provide your ow
 	Run: func(cmd *cobra.Command, args []string) {
 		var steps []gokamux.Step
 
-		gokamux.NewMuxer().
+		//TODO: Get steps from configuration file
+
+		muxer := gokamux.NewMuxer().
 			Brokers(Cfg.Brokers...).
 			Input(Cfg.InputTopics...).
 			Output(Cfg.OutputTopics...).
 			Step(steps...)
+
+		log.Fatal(muxer.Run(context.Background()))
 	},
 }
 

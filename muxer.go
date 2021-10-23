@@ -50,8 +50,10 @@ func (m *Muxer) Output(topic ...string) *Muxer {
 	return m
 }
 
-func (m *Muxer) Step(steps ...Step) {
+func (m *Muxer) Step(steps ...Step) *Muxer {
 	m.steps = append(m.steps, steps...)
+
+	return m
 }
 
 func (m Muxer) Run(ctx context.Context) error {
