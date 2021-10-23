@@ -24,8 +24,10 @@ func (s *sampleParams) Init(params ...string) error {
 	return nil
 }
 
-func (s sampleParams) Process(ctx model.Context, msg string) {
+func (s sampleParams) Process(ctx model.Context, msg string) error {
 	fmt.Println("Processor changer with message", s.message)
 
 	ctx.OverrideMessage(s.message)
+
+	return nil
 }

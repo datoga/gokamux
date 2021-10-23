@@ -16,20 +16,20 @@ type JQTransformer struct {
 	common.JQ
 }
 
-func (transformer JQTransformer) Process(ctx model.Context, msg string) {
+func (transformer JQTransformer) Process(ctx model.Context, msg string) error {
 	v, err := transformer.Eval(ctx.GokaContext().Context(), msg)
 
 	if err != nil {
-		ctx.Err(err)
-		return
+		return err
 	}
 
 	s, ok := v.(string)
 
 	if !ok {
-		ctx.Err(fmt.Errorf("failed decoding JQ result, expecting string, got %T for %v", s, s))
-		return
+		return fmt.Errorf("failed decoding JQ result, expecting string, got %T for %v", s, s)
 	}
 
 	ctx.OverrideMessage(s)
+
+	return nil
 }

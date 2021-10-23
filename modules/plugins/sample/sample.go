@@ -16,7 +16,7 @@ func (sample) Init(params ...string) error {
 	return nil
 }
 
-func (sample) Process(ctx model.Context, msg string) {
+func (sample) Process(ctx model.Context, msg string) error {
 	gokaCtx := ctx.GokaContext()
 
 	fmt.Printf(
@@ -30,4 +30,6 @@ func (sample) Process(ctx model.Context, msg string) {
 		gokaCtx.Headers(),
 		msg,
 	)
+
+	return nil
 }

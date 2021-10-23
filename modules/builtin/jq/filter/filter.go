@@ -16,22 +16,22 @@ type JQFilter struct {
 	common.JQ
 }
 
-func (filter JQFilter) Process(ctx model.Context, msg string) {
+func (filter JQFilter) Process(ctx model.Context, msg string) error {
 	v, err := filter.Eval(ctx.GokaContext().Context(), msg)
 
 	if err != nil {
-		ctx.Err(err)
-		return
+		return err
 	}
 
 	b, ok := v.(bool)
 
 	if !ok {
-		ctx.Err(fmt.Errorf("failed decoding JQ result, expecting boolean, got %T for %v", b, b))
-		return
+		return fmt.Errorf("failed decoding JQ result, expecting boolean, got %T for %v", b, b)
 	}
 
 	if b {
 		ctx.Discard()
 	}
+
+	return nil
 }

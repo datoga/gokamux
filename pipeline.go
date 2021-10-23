@@ -68,9 +68,11 @@ func (p pipelineRunner) Run(ctx goka.Context, message *string) pipelineResult {
 
 		fmt.Printf("Executing step %d [%s] with module %s\n", i, m.ID, m.ModuleName)
 
-		m.ModuleInstance.Process(&cbCtx, *message)
+		if err := m.ModuleInstance.Process(&cbCtx, *message); err != nil {
+			return pipelineResult{Error: err}
+		}
 
-		fmt.Printf("Step %d [%s]\n executed", i, m.ID)
+		fmt.Printf("Step %d [%s]\n executed successfully", i, m.ID)
 
 		if cbCtx.Error != nil {
 			return pipelineResult{Error: cbCtx.Error}
