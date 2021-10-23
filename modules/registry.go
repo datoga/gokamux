@@ -12,25 +12,31 @@ var (
 	registry  = make(map[string]model.Module)
 )
 
-func Register(id string, module model.Module) error {
-	if id == "" {
-		return fmt.Errorf("an unique id must be provided for the module")
+func Register(name string, module model.Module) error {
+	if name == "" {
+		return fmt.Errorf("an unique name must be provided for the module")
 	}
 
 	if module == nil {
-		return fmt.Errorf("nil module %s provided", id)
+		return fmt.Errorf("nil module %s provided", name)
 	}
 
 	moduleMtx.Lock()
 	defer moduleMtx.Unlock()
 
-	if _, dup := registry[id]; dup {
-		return fmt.Errorf("module %s registered previously", id)
+	if _, dup := registry[name]; dup {
+		return fmt.Errorf("module %s registered previously", name)
 	}
 
-	registry[id] = module
+	registry[name] = module
 
 	return nil
+}
+
+func MustRegister(name string, module model.Module) {
+	if err := Register(name, module); err != nil {
+		panic(err)
+	}
 }
 
 func List() []string {

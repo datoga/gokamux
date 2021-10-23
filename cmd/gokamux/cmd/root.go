@@ -10,6 +10,8 @@ import (
 	"github.com/datoga/gokamux/modules"
 	"github.com/spf13/cobra"
 
+	_ "github.com/datoga/gokamux/modules/builtin/jq/filter"
+	_ "github.com/datoga/gokamux/modules/builtin/jq/transformer"
 	"github.com/spf13/viper"
 )
 
