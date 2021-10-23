@@ -3,7 +3,6 @@ package modules
 import (
 	"fmt"
 	"io/ioutil"
-	"log"
 	"path/filepath"
 	"plugin"
 	"strings"
@@ -11,14 +10,19 @@ import (
 	"github.com/datoga/gokamux/modules/model"
 )
 
-func Discover(path string) ([]ModuleDefinition, error) {
+type moduleDefinition struct {
+	Name   string
+	Module model.Module
+}
+
+func discover(path string) ([]moduleDefinition, error) {
 	files, err := ioutil.ReadDir(path)
 
 	if err != nil {
 		return nil, fmt.Errorf("path %s not readable with error %v", path, err)
 	}
 
-	var modules []ModuleDefinition
+	var modules []moduleDefinition
 
 	for _, f := range files {
 		if f.IsDir() {
@@ -31,13 +35,19 @@ func Discover(path string) ([]ModuleDefinition, error) {
 			return nil, err
 		}
 
-		modules = append(modules, *module)
+		pluginName := f.Name()
+
+		if idx := strings.Index(f.Name(), "."); idx != -1 {
+			pluginName = f.Name()[:idx]
+		}
+
+		modules = append(modules, moduleDefinition{Name: pluginName, Module: *module})
 	}
 
 	return modules, nil
 }
 
-func discoverModule(name string) (*ModuleDefinition, error) {
+func discoverModule(name string) (*model.Module, error) {
 	plug, err := plugin.Open(name)
 
 	if err != nil {
@@ -50,29 +60,20 @@ func discoverModule(name string) (*ModuleDefinition, error) {
 		return nil, fmt.Errorf("failed looking symbols on plugin %s with error %v", name, err)
 	}
 
-	log.Printf("%T, %+v", processPlugin, processPlugin)
-
 	fnLoad, ok := processPlugin.(func() model.Module)
 
 	if !ok {
 		return nil, fmt.Errorf("failed taking function process for plugin %s", name)
 	}
 
-	pluginName := name
+	module := fnLoad()
 
-	if idx := strings.Index(name, "."); idx != -1 {
-		pluginName = name[:idx]
-	}
-
-	return &ModuleDefinition{
-		Name:   pluginName,
-		Module: fnLoad(),
-	}, nil
+	return &module, nil
 }
 
-func RegisterModules(modules ...ModuleDefinition) error {
+func registerModules(modules ...moduleDefinition) error {
 	for _, module := range modules {
-		if err := Register(module.Name, module); err != nil {
+		if err := Register(module.Name, module.Module); err != nil {
 			return err
 		}
 	}
@@ -81,13 +82,13 @@ func RegisterModules(modules ...ModuleDefinition) error {
 }
 
 func DiscoverAndRegister(path string) error {
-	modules, err := Discover(path)
+	modules, err := discover(path)
 
 	if err != nil {
 		return fmt.Errorf("failed discovering modules with error %v", err)
 	}
 
-	err = RegisterModules(modules...)
+	err = registerModules(modules...)
 
 	if err != nil {
 		return fmt.Errorf("failed registering modules with error %v", err)

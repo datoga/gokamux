@@ -7,22 +7,17 @@ import (
 	"github.com/datoga/gokamux/modules/model"
 )
 
-type ModuleDefinition struct {
-	Name   string
-	Module model.Module
-}
-
 var (
 	moduleMtx sync.RWMutex
-	registry  = make(map[string]ModuleDefinition)
+	registry  = make(map[string]model.Module)
 )
 
-func Register(id string, module ModuleDefinition) error {
+func Register(id string, module model.Module) error {
 	if id == "" {
 		return fmt.Errorf("an unique id must be provided for the module")
 	}
 
-	if module.Module == nil {
+	if module == nil {
 		return fmt.Errorf("nil module %s provided", id)
 	}
 
@@ -38,17 +33,17 @@ func Register(id string, module ModuleDefinition) error {
 	return nil
 }
 
-func List() []ModuleDefinition {
+func List() []string {
 	moduleMtx.RLock()
 	defer moduleMtx.RUnlock()
 
-	var mDefs []ModuleDefinition
+	var mNames []string
 
-	for _, m := range registry {
-		mDefs = append(mDefs, m)
+	for k := range registry {
+		mNames = append(mNames, k)
 	}
 
-	return mDefs
+	return mNames
 }
 
 func Instance(id string, params ...string) (model.Module, error) {
@@ -61,9 +56,9 @@ func Instance(id string, params ...string) (model.Module, error) {
 		return nil, fmt.Errorf("module %s not found", id)
 	}
 
-	if err := module.Module.Init(params...); err != nil {
+	if err := module.Init(params...); err != nil {
 		return nil, fmt.Errorf("failed on init for module %s with error %v", id, err)
 	}
 
-	return module.Module, nil
+	return module, nil
 }

@@ -71,7 +71,7 @@ func discoverPlugins() {
 		fmt.Println(len(modules.List()), "modules loaded")
 
 		for _, m := range modules.List() {
-			fmt.Println("Module", m.Name)
+			fmt.Println("Module", m)
 		}
 	}
 }
