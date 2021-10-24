@@ -1,7 +1,7 @@
 package log
 
 import (
-	"fmt"
+	logger "log"
 
 	"github.com/datoga/gokamux/modules"
 	"github.com/datoga/gokamux/modules/model"
@@ -20,7 +20,7 @@ func (log) Init(params ...string) error {
 func (log) Process(ctx model.Context, msg string) error {
 	gokaCtx := ctx.GokaContext()
 
-	fmt.Printf(
+	logger.Printf(
 		"Message received, timestamp = %v, topic = %s, offset = %d, partition = %d, key = %s, bytes = %d, headers = %v, message = %s\n",
 		gokaCtx.Timestamp(),
 		gokaCtx.Topic(),

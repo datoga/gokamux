@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"log"
 	"strconv"
 
 	"github.com/Shopify/sarama"
@@ -24,7 +25,7 @@ func loadGokaMuxConfig(v *viper.Viper) (*Config, error) {
 	brokers := v.GetStringSlice("brokers")
 
 	if len(brokers) == 0 {
-		fmt.Println("No brokers configured, selecting the default broker", defaultBroker)
+		log.Println("No brokers configured, selecting the default broker", defaultBroker)
 
 		brokers = []string{defaultBroker}
 	}
@@ -32,7 +33,7 @@ func loadGokaMuxConfig(v *viper.Viper) (*Config, error) {
 	inputTopics := v.GetStringSlice("stream.input")
 
 	if len(inputTopics) == 0 {
-		fmt.Println("No input topics configured, selecting the default input topic", defaultInputTopic)
+		log.Println("No input topics configured, selecting the default input topic", defaultInputTopic)
 
 		inputTopics = []string{defaultInputTopic}
 	}
@@ -40,14 +41,14 @@ func loadGokaMuxConfig(v *viper.Viper) (*Config, error) {
 	outputTopics := v.GetStringSlice("stream.output")
 
 	if len(outputTopics) == 0 {
-		fmt.Println("No output topics configured")
+		log.Println("No output topics configured")
 		outputTopics = []string{}
 	}
 
 	stepNames := v.GetStringSlice("stream.steps")
 
 	if stepNames == nil || len(stepNames) == 0 {
-		fmt.Println("No steps defined on the stream")
+		log.Println("No steps defined on the stream")
 	}
 
 	var steps []gokamux.Step

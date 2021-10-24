@@ -2,6 +2,7 @@ package gokamux
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/datoga/gokamux/modules"
 	"github.com/datoga/gokamux/modules/model"
@@ -34,6 +35,8 @@ func (p *pipeline) Compile() (*pipelineRunner, error) {
 	var pSteps []compiledStep
 
 	for _, step := range p.steps {
+		log.Println("Instance module", step)
+
 		module, err := modules.Instance(step.Module, step.Params...)
 
 		if err != nil {
@@ -66,13 +69,13 @@ func (p pipelineRunner) Run(ctx goka.Context, message *string) pipelineResult {
 	for i, m := range p.compiledSteps {
 		cbCtx := cbContext{GokaCtx: ctx}
 
-		fmt.Printf("Executing step %d [%s] with module %s\n", i, m.ID, m.ModuleName)
+		log.Printf("Executing step %d [%s] with module %s\n", i, m.ID, m.ModuleName)
 
 		if err := m.ModuleInstance.Process(&cbCtx, *message); err != nil {
 			return pipelineResult{Error: err}
 		}
 
-		fmt.Printf("Step %d [%s]\n executed successfully", i, m.ID)
+		log.Printf("Step %d [%s]\n executed successfully", i, m.ID)
 
 		if cbCtx.Error != nil {
 			return pipelineResult{Error: cbCtx.Error}

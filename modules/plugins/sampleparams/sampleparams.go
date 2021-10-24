@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/datoga/gokamux/modules/model"
 )
@@ -25,7 +26,7 @@ func (s *sampleParams) Init(params ...string) error {
 }
 
 func (s sampleParams) Process(ctx model.Context, msg string) error {
-	fmt.Println("Processor changer with message", s.message)
+	log.Println("Processor changer with message", s.message)
 
 	ctx.OverrideMessage(s.message)
 

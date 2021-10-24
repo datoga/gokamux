@@ -3,7 +3,7 @@ package cmd
 import (
 	"context"
 	"errors"
-	"fmt"
+	"io"
 	"log"
 	"os"
 
@@ -44,7 +44,7 @@ You can define declaratively the Kafka config and your setup, or provide your ow
 			Output(Cfg.OutputTopics...).
 			Step(Cfg.Steps...)
 
-		log.Fatal(muxer.Run(context.Background()))
+		cobra.CheckErr(muxer.Run(context.Background()))
 	},
 }
 
@@ -55,7 +55,7 @@ func Execute() {
 }
 
 func init() {
-	cobra.OnInitialize(initConfigGokaMux, initSaramaConfig, discoverPlugins)
+	cobra.OnInitialize(configureLog, initConfigGokaMux, initSaramaConfig, discoverPlugins)
 
 	rootCmd.PersistentFlags().StringVarP(&cfgFile, "config", "c", "", "gokamux config file (default is $HOME/.gokamux.toml)")
 
@@ -66,17 +66,21 @@ func init() {
 	rootCmd.PersistentFlags().BoolVarP(&Verbose, "verbose", "v", false, "verbose output")
 }
 
+func configureLog() {
+	if !Verbose {
+		log.SetOutput(io.Discard)
+	}
+}
+
 func discoverPlugins() {
 	if _, err := os.Stat(PluginsPath); !os.IsNotExist(err) {
 		modules.MustDiscoverAndRegister(PluginsPath)
 	}
 
-	if Verbose {
-		fmt.Println(len(modules.List()), "modules loaded")
+	log.Println(len(modules.List()), "modules loaded")
 
-		for _, m := range modules.List() {
-			fmt.Println("Module", m)
-		}
+	for _, m := range modules.List() {
+		log.Println("Module", m)
 	}
 }
 
@@ -92,9 +96,7 @@ func initConfigGokaMux() {
 
 	cobra.CheckErr(err)
 
-	if Verbose {
-		fmt.Printf("GokaMux Config: %+v\n", *cfg)
-	}
+	log.Printf("GokaMux Config: %+v\n", *cfg)
 
 	Cfg = cfg
 }
@@ -104,7 +106,7 @@ func initSaramaConfig() {
 	v, found := initConfig(saramaCfgFile, "sarama")
 
 	if !found {
-		fmt.Println("No Sarama config file found, default config will be used")
+		log.Println("No Sarama config file found, default config will be used")
 		return
 	}
 
@@ -112,9 +114,7 @@ func initSaramaConfig() {
 
 	cobra.CheckErr(err)
 
-	if Verbose {
-		fmt.Printf("Sarama Config: %+v\n", *saramaCfg)
-	}
+	log.Printf("Sarama Config: %+v\n", *saramaCfg)
 
 	SaramaCfg = saramaCfg
 }
@@ -144,9 +144,7 @@ func initConfig(cfgFile string, cfgName string) (*viper.Viper, bool) {
 
 	// If a config file is found, read it in.
 	if err := v.ReadInConfig(); err == nil {
-		if Verbose {
-			fmt.Printf("Using config file for %s: %s\n", cfgName, v.ConfigFileUsed())
-		}
+		log.Printf("Using config file for %s: %s\n", cfgName, v.ConfigFileUsed())
 	}
 
 	return v, v.ReadInConfig() == nil
