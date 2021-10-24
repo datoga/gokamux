@@ -5,6 +5,7 @@ import (
 	"strconv"
 
 	"github.com/Shopify/sarama"
+	"github.com/datoga/gokamux"
 	"github.com/datoga/saramaconfig"
 	"github.com/spf13/viper"
 )
@@ -13,12 +14,7 @@ type Config struct {
 	Brokers      []string
 	InputTopics  []string
 	OutputTopics []string
-	Operations   []Operation
-}
-
-type Operation struct {
-	Module string
-	Params []string
+	Steps        []gokamux.Step
 }
 
 const defaultBroker = "localhost:9092"
@@ -48,36 +44,37 @@ func loadGokaMuxConfig(v *viper.Viper) (*Config, error) {
 		outputTopics = []string{}
 	}
 
-	operationNames := v.GetStringSlice("stream.operations")
+	stepNames := v.GetStringSlice("stream.steps")
 
-	if operationNames == nil || len(operationNames) == 0 {
-		fmt.Println("No operations defined on the stream")
+	if stepNames == nil || len(stepNames) == 0 {
+		fmt.Println("No steps defined on the stream")
 	}
 
-	var operationsDefined []Operation
+	var steps []gokamux.Step
 
-	for _, operation := range operationNames {
-		vOperation := v.Sub(operation)
+	for _, stepName := range stepNames {
+		vStep := v.Sub(stepName)
 
-		if vOperation == nil {
-			return nil, fmt.Errorf("operation %s defined on the list but not in the module", operation)
+		if vStep == nil {
+			return nil, fmt.Errorf("step %s defined on the list but not in the module", stepName)
 		}
 
-		module := vOperation.GetString("module")
+		module := vStep.GetString("module")
 
 		if module == "" {
-			return nil, fmt.Errorf("no module name defined for operation %s", operation)
+			return nil, fmt.Errorf("no module name defined for step %s", stepName)
 		}
 
-		params, err := parseParams(vOperation.Get("params"))
+		params, err := parseParams(vStep.Get("params"))
 
 		if err != nil {
 			return nil, fmt.Errorf("failed parsing params with error %v", err)
 		}
 
-		operationsDefined = append(
-			operationsDefined,
-			Operation{
+		steps = append(
+			steps,
+			gokamux.Step{
+				ID:     stepName,
 				Module: module,
 				Params: params,
 			},
@@ -88,7 +85,7 @@ func loadGokaMuxConfig(v *viper.Viper) (*Config, error) {
 		Brokers:      brokers,
 		InputTopics:  inputTopics,
 		OutputTopics: outputTopics,
-		Operations:   operationsDefined,
+		Steps:        steps,
 	}, nil
 }
 
