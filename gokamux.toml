@@ -1,7 +1,7 @@
 [stream]
 input = ['in1','in2']
 output = ['out1', 'out2']
-operations = ["filter-values", "show-values", "transformer-values"]
+steps = ["filter-values", "show-values", "transformer-values", "sample"]
 
 [filter-values]
 module = 'jq-filter'
@@ -15,5 +15,8 @@ params = 'false'
 module = 'log'
 
 [transformer-values]
-module = 'jq-processor'
-params = [".", "true"]
+module = 'jq-transformer'
+params = '.'
+
+[sample]
+module = 'sample'
