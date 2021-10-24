@@ -12,8 +12,8 @@ import (
 	"github.com/datoga/gokamux/modules"
 	"github.com/spf13/cobra"
 
-	_ "github.com/datoga/gokamux/modules/builtin/jq/filter"
-	_ "github.com/datoga/gokamux/modules/builtin/jq/transformer"
+	_ "github.com/datoga/gokamux/modules/builtin/all"
+
 	"github.com/spf13/viper"
 )
 
@@ -38,15 +38,11 @@ var rootCmd = &cobra.Command{
 	- Output (writes the result in a different output topics).
 You can define declaratively the Kafka config and your setup, or provide your own filters and transformers via the API.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		var steps []gokamux.Step
-
-		//TODO: Get steps from configuration file
-
 		muxer := gokamux.NewMuxer().
 			Brokers(Cfg.Brokers...).
 			Input(Cfg.InputTopics...).
 			Output(Cfg.OutputTopics...).
-			Step(steps...)
+			Step(Cfg.Steps...)
 
 		log.Fatal(muxer.Run(context.Background()))
 	},
