@@ -1,21 +1,31 @@
 package cmd
 
 import (
-	"fmt"
+	"context"
+	"errors"
+	"io"
+	"log"
 	"os"
 
+	"github.com/Shopify/sarama"
+	"github.com/datoga/gokamux"
+	"github.com/datoga/gokamux/modules"
 	"github.com/spf13/cobra"
 
-	"github.com/spf13/viper"
+	_ "github.com/datoga/gokamux/modules/builtin/all"
 
-	"github.com/datoga/gokamux/cmd/gokamux/cmd/config"
+	"github.com/spf13/viper"
 )
 
 var cfgFile string
+var saramaCfgFile string
+
+var PluginsPath string
 var Verbose bool
 var Version = "1.0.0" //TODO: Get from arg in build
 
-var Cfg config.Config
+var Cfg *Config
+var SaramaCfg *sarama.Config
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
@@ -28,20 +38,13 @@ var rootCmd = &cobra.Command{
 	- Output (writes the result in a different output topics).
 You can define declaratively the Kafka config and your setup, or provide your own filters and transformers via the API.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		brokers := viper.GetStringSlice("brokers")
+		muxer := gokamux.NewMuxer().
+			Brokers(Cfg.Brokers...).
+			Input(Cfg.InputTopics...).
+			Output(Cfg.OutputTopics...).
+			Step(Cfg.Steps...)
 
-		if len(brokers) == 0 {
-			fmt.Fprintln(os.Stderr, "At least one broker must be configured")
-			return
-		}
-
-		Cfg = config.Config{
-			Brokers: brokers,
-		}
-
-		if Verbose {
-			fmt.Printf("Config: %+v\n", Cfg)
-		}
+		cobra.CheckErr(muxer.Run(context.Background()))
 	},
 }
 
@@ -52,40 +55,97 @@ func Execute() {
 }
 
 func init() {
-	cobra.OnInitialize(initConfig)
+	cobra.OnInitialize(configureLog, initConfigGokaMux, initSaramaConfig, discoverPlugins)
 
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "c", "config file (default is $HOME/.gokamux.yaml)")
+	rootCmd.PersistentFlags().StringVarP(&cfgFile, "config", "c", "", "gokamux config file (default is $HOME/.gokamux.toml)")
+
+	rootCmd.PersistentFlags().StringVarP(&saramaCfgFile, "sarama-config", "s", "", "sarama config file (default is $HOME/.sarama.toml) (optional)")
+
+	rootCmd.PersistentFlags().StringVarP(&PluginsPath, "plugins", "p", "plugins", "plugins directory (optional)")
 
 	rootCmd.PersistentFlags().BoolVarP(&Verbose, "verbose", "v", false, "verbose output")
 }
 
-// initConfig reads in config file and ENV variables if set.
-func initConfig() {
+func configureLog() {
+	if !Verbose {
+		log.SetOutput(io.Discard)
+	}
+}
+
+func discoverPlugins() {
+	if _, err := os.Stat(PluginsPath); !os.IsNotExist(err) {
+		modules.MustDiscoverAndRegister(PluginsPath)
+	}
+
+	log.Println(len(modules.List()), "modules loaded")
+
+	for _, m := range modules.List() {
+		log.Println("Module", m)
+	}
+}
+
+// initConfigGokaMux reads in a GokaMux config file and ENV variables if set.
+func initConfigGokaMux() {
+	v, found := initConfig(cfgFile, "gokamux")
+
+	if !found {
+		cobra.CheckErr(errors.New("failed loading the gokamux config"))
+	}
+
+	cfg, err := loadGokaMuxConfig(v)
+
+	cobra.CheckErr(err)
+
+	log.Printf("GokaMux Config: %+v\n", *cfg)
+
+	Cfg = cfg
+}
+
+// initSaramaConfig reads in Sarama config file and ENV variables if set.
+func initSaramaConfig() {
+	v, found := initConfig(saramaCfgFile, "sarama")
+
+	if !found {
+		log.Println("No Sarama config file found, default config will be used")
+		return
+	}
+
+	saramaCfg, err := loadSaramaConfig(v)
+
+	cobra.CheckErr(err)
+
+	log.Printf("Sarama Config: %+v\n", *saramaCfg)
+
+	SaramaCfg = saramaCfg
+}
+
+// initConfig reads in a config file and ENV variables if set.
+func initConfig(cfgFile string, cfgName string) (*viper.Viper, bool) {
+	v := viper.New()
+
 	if cfgFile != "" {
 		// Use config file from the flag.
-		viper.SetConfigFile(cfgFile)
+		v.SetConfigFile(cfgFile)
 	} else {
 		// Find home directory.
 		home, err := os.UserHomeDir()
 		cobra.CheckErr(err)
 
-		// Search config in home directory with name ".gokamux" (without extension).
-		viper.AddConfigPath(home)
-		viper.AddConfigPath(".")
-		viper.AddConfigPath("/etc/gokamux/")
-		viper.SetConfigType("toml")
-		viper.SetConfigName("gokamux")
-	}
+		// Search config in home directory with name ".$CONFIGNAME" (without extension).
+		v.AddConfigPath(home)
+		v.AddConfigPath(".")
+		v.AddConfigPath("/etc/gokamux/")
+		v.SetConfigType("toml")
+		v.SetConfigName(cfgName)
 
-	viper.SetEnvPrefix("gokamux")
-	viper.AutomaticEnv() // read in environment variables that match
+		v.SetEnvPrefix(cfgName)
+		v.AutomaticEnv() // read in environment variables that match
+	}
 
 	// If a config file is found, read it in.
-	if err := viper.ReadInConfig(); err == nil {
-		fmt.Fprintln(os.Stderr, "Using config file:", viper.ConfigFileUsed())
+	if err := v.ReadInConfig(); err == nil {
+		log.Printf("Using config file for %s: %s\n", cfgName, v.ConfigFileUsed())
 	}
 
-	if Verbose {
-		fmt.Printf("Config file selected: %s\n", viper.ConfigFileUsed())
-	}
+	return v, v.ReadInConfig() == nil
 }

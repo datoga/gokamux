@@ -1,0 +1,22 @@
+[stream]
+input = ['in1','in2']
+output = ['out1', 'out2']
+steps = ["filter-values", "show-values", "transformer-values", "sample"]
+
+[filter-values]
+module = 'jq-filter'
+params = 'true'
+
+[filter-false-values]
+module = 'jq-filter'
+params = 'false'
+
+[show-values]
+module = 'log'
+
+[transformer-values]
+module = 'jq-transformer'
+params = '.'
+
+[sample]
+module = 'sample'
