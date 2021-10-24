@@ -9,14 +9,14 @@ import (
 )
 
 func init() {
-	modules.MustRegister("jq-transformer", &JQTransformer{})
+	modules.MustRegister("jq-transformer", &jqTransformer{})
 }
 
-type JQTransformer struct {
+type jqTransformer struct {
 	common.JQ
 }
 
-func (transformer JQTransformer) Process(ctx model.Context, msg string) error {
+func (transformer jqTransformer) Process(ctx model.Context, msg string) error {
 	v, err := transformer.Eval(ctx.GokaContext().Context(), msg)
 
 	if err != nil {

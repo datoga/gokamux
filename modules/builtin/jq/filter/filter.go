@@ -9,14 +9,14 @@ import (
 )
 
 func init() {
-	modules.MustRegister("jq-filter", &JQFilter{})
+	modules.MustRegister("jq-filter", &jqFilter{})
 }
 
-type JQFilter struct {
+type jqFilter struct {
 	common.JQ
 }
 
-func (filter JQFilter) Process(ctx model.Context, msg string) error {
+func (filter jqFilter) Process(ctx model.Context, msg string) error {
 	v, err := filter.Eval(ctx.GokaContext().Context(), msg)
 
 	if err != nil {
