@@ -3,6 +3,7 @@ package cmd
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"log"
 	"os"
@@ -22,7 +23,9 @@ var saramaCfgFile string
 
 var PluginsPath string
 var Verbose bool
-var Version = "1.0.0" //TODO: Get from arg in build
+
+var Build = "dev"
+var Version = "dev"
 
 var Cfg *Config
 var SaramaCfg *sarama.Config
@@ -30,7 +33,7 @@ var SaramaCfg *sarama.Config
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
 	Use:     "gokamux",
-	Version: Version,
+	Version: fmt.Sprintf("%s (build %s)", Version, Build),
 	Short:   "gokamux is a service to mux Kafka streams",
 	Long: `gokamux takes different input Kafka streams and can perform different actions on them:
 	- Filtering (pass or restrict messages according different criteria).

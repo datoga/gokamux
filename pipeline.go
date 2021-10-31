@@ -66,14 +66,20 @@ type pipelineResult struct {
 func (p pipelineRunner) Run(ctx goka.Context, message *string) pipelineResult {
 	r := pipelineResult{}
 
+	log.Printf("There are %v steps", len(p.compiledSteps))
+
 	for i, m := range p.compiledSteps {
 		cbCtx := cbContext{GokaCtx: ctx}
 
 		log.Printf("Executing step %d [%s] with module %s\n", i, m.ID, m.ModuleName)
 
+		log.Println("Message before", *message)
+
 		if err := m.ModuleInstance.Process(&cbCtx, *message); err != nil {
 			return pipelineResult{Error: err}
 		}
+
+		log.Println("Message after", *message)
 
 		log.Printf("Step %d [%s]\n executed successfully", i, m.ID)
 

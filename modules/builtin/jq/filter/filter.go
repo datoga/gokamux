@@ -29,6 +29,7 @@ func (filter jqFilter) Process(ctx model.Context, msg string) error {
 		return fmt.Errorf("failed decoding JQ result, expecting boolean, got %T for %v", b, b)
 	}
 
+	// True evaluations will discard the message
 	if b {
 		ctx.Discard()
 	}

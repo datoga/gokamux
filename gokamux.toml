@@ -1,15 +1,17 @@
+brokers = ['localhost:42019']
+
 [stream]
 input = ['in1','in2']
 output = ['out1', 'out2']
-steps = ["filter-values", "show-values", "transformer-values", "sample"]
+steps = ["no-filter-values", "show-values", "transformer-values", "sample"]
 
-[filter-values]
-module = 'jq-filter'
-params = 'true'
-
-[filter-false-values]
+[no-filter-values]
 module = 'jq-filter'
 params = 'false'
+
+[filter-all-values]
+module = 'jq-filter'
+params = 'true'
 
 [show-values]
 module = 'log'

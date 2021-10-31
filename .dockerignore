@@ -1,0 +1,6 @@
+bin
+.vscode
+.gitignore
+LICENSE
+README.md
+gokamux.toml

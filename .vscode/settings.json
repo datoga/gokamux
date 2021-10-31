@@ -2,6 +2,7 @@
     "conventionalCommits.scopes": [
         "plugins",
         "modules",
-        "main"
+        "main",
+        "docker"
     ]
 }

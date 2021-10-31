@@ -3,6 +3,7 @@ package gokamux
 import (
 	"context"
 	"fmt"
+	"log"
 
 	"github.com/lovoo/goka"
 	"github.com/lovoo/goka/codec"
@@ -79,6 +80,7 @@ func (m Muxer) Run(ctx context.Context) error {
 		}
 
 		if result.Discard {
+			log.Println("Message discarded")
 			return
 		}
 
