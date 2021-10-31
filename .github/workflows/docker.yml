@@ -19,6 +19,17 @@ jobs:
       -
         name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v1
+        
+      -
+        name: Docker meta
+        id: meta
+        uses: docker/metadata-action@v3
+        with:
+          # list of Docker images to use as base name for tags
+          images: |
+            datoga/gokamux
+          tags: |
+            type=sha
       -
         name: Login to DockerHub
         uses: docker/login-action@v1 
@@ -31,7 +42,8 @@ jobs:
         uses: docker/build-push-action@v2
         with:
           context: .
-          push: true
-          tags: datoga/gokamux:$(date +%s),datoga/gokamux:latest
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
           build-args: APP_VERSION=$(date +%s),APP_BUILD=$GITHUB_SHA
           file: docker/Dockerfile
