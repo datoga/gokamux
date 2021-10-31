@@ -55,5 +55,7 @@ jobs:
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          build-args: APP_VERSION=${{ steps.time.outputs.time }},APP_BUILD=${GITHUB_SHA}
+          build-args: |
+            APP_VERSION=${{ steps.time.outputs.time }}
+            APP_BUILD=${{ github.sha }}
           file: docker/Dockerfile
