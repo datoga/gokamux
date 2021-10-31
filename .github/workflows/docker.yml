@@ -25,9 +25,10 @@ jobs:
         id: meta
         uses: docker/metadata-action@v3
         with:
-          # list of Docker images to use as base name for tags
           images: |
             datoga/gokamux
+          flavor: |
+            latest=true
           tags: |
             type=sha,prefix=,format=long
       - name: Get Time
